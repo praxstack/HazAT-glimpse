@@ -147,5 +147,13 @@ export function prompt(html, options = {}) {
         resolve(null); // User closed window without sending a message
       }
     });
+
+    win.once('error', (err) => {
+      if (timer) clearTimeout(timer);
+      if (!resolved) {
+        resolved = true;
+        reject(err);
+      }
+    });
   });
 }
