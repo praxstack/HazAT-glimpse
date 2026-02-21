@@ -31,6 +31,7 @@ struct Config {
     var cursorOffsetX: Int = 20
     var cursorOffsetY: Int = -20
     var clickThrough: Bool = false
+    var autoClose: Bool = false
 }
 
 func parseArgs() -> Config {
@@ -70,6 +71,8 @@ func parseArgs() -> Config {
             if i < args.count, let v = Int(args[i]) { config.cursorOffsetY = v }
         case "--click-through":
             config.clickThrough = true
+        case "--auto-close":
+            config.autoClose = true
         default:
             break
         }
@@ -271,6 +274,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScri
             } else {
                 stopFollowingCursor()
             }
+        case "file":
+            guard let path = json["path"] as? String else {
+                log("file command: missing path field")
+                return
+            }
+            let fileURL = URL(fileURLWithPath: path)
+            guard FileManager.default.fileExists(atPath: path) else {
+                log("file command: file not found: \(path)")
+                return
+            }
+            webView.loadFileURL(fileURL, allowingReadAccessTo: fileURL.deletingLastPathComponent())
         case "close":
             closeAndExit()
         default:
@@ -309,6 +323,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScri
             }
 
             writeToStdout(["type": "message", "data": json])
+            if config.autoClose {
+                closeAndExit()
+            }
         }
     }
 
