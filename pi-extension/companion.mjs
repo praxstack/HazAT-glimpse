@@ -220,7 +220,7 @@ function resetIdleTimer() {
 function pushUpdate(id, data) {
   const color = STATUS_COLOR[data.status] ?? '#6B7280';
   const label = STATUS_LABEL[data.status] ?? '';
-  const detail = truncate(data.detail ?? '', 30);
+  const detail = truncate(data.detail ?? '', 60);
   const project = esc(data.project ?? 'pi');
   const ctxPct = data.contextPercent ?? null;
   const js = `update(${JSON.stringify(id)},${JSON.stringify(color)},${JSON.stringify(project)},${JSON.stringify(label)},${JSON.stringify(detail)},${JSON.stringify(ctxPct)})`;
@@ -282,7 +282,7 @@ server.listen(SOCK, () => {
 // ── window ────────────────────────────────────────────────────────────────────
 
 win = open(buildHTML(), {
-  width: 600,
+  width: 630,
   height: 100,
   frameless: true,
   floating: true,
