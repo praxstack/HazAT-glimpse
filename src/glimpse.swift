@@ -280,6 +280,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScri
 
         let bridgeJS = """
         window.glimpse = {
+            cursorTip: null,
             send: function(data) {
                 window.webkit.messageHandlers.glimpse.postMessage(JSON.stringify(data));
             },
@@ -346,6 +347,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScri
             }
             return event
         }
+    }
+
+    func computeCursorTip() -> [String: Int]? {
+        let H = window.frame.size.height
+        if let anchor = cursorAnchor,
+           let base = anchorPosition(mouse: NSPoint(x: 0, y: 0), windowSize: window.frame.size, anchor: anchor) {
+            // In anchor mode, the offset from mouse to window origin is constant.
+            // base is computed with mouse at (0,0), so base.x/y IS the offset from mouse to window origin.
+            let cssX = 0 - base.x - CGFloat(config.cursorOffsetX)
+            let cssY = H - (0 - base.y - CGFloat(config.cursorOffsetY))
+            return ["x": Int(cssX), "y": Int(cssY)]
+        } else if config.followCursor || globalMouseMonitor != nil {
+            // Offset-only mode: windowOrigin.x = mouse.x + offsetX, windowOrigin.y = mouse.y + offsetY
+            // cssX = mouse.x - windowOrigin.x = -offsetX
+            // cssY = H - (mouse.y - windowOrigin.y) = H - (-offsetY) = H + offsetY
+            let cssX = -config.cursorOffsetX
+            let cssY = Int(H) + config.cursorOffsetY
+            return ["x": cssX, "y": cssY]
+        }
+        return nil
     }
 
     func stopFollowingCursor() {
@@ -431,6 +452,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScri
         case "get-info":
             var info = getSystemInfo()
             info["type"] = "info"
+            if let tip = computeCursorTip() {
+                info["cursorTip"] = tip
+            }
             writeToStdout(info)
         case "close":
             closeAndExit()
@@ -451,6 +475,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScri
             window.makeFirstResponder(webView)
             var info = getSystemInfo()
             info["type"] = "ready"
+            if let tip = computeCursorTip() {
+                info["cursorTip"] = tip
+                webView.evaluateJavaScript("window.glimpse.cursorTip = {x: \(tip["x"]!), y: \(tip["y"]!)}", completionHandler: nil)
+            }
             writeToStdout(info)
         }
     }
@@ -480,6 +508,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScri
     }
 
     // MARK: - NSWindowDelegate
+
+    func windowDidResize(_ notification: Notification) {
+        if let tip = computeCursorTip() {
+            webView.evaluateJavaScript("window.glimpse.cursorTip = {x: \(tip["x"]!), y: \(tip["y"]!)}", completionHandler: nil)
+        }
+    }
 
     func windowWillClose(_ notification: Notification) {
         writeToStdout(["type": "closed"])
