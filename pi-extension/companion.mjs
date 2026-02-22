@@ -109,10 +109,12 @@ body {
   padding: 0 10px 4px 21px;
   font-size: 9px;
   font-weight: 400;
-  color: rgba(255,255,255,0.4);
+  color: rgba(255,255,255,0.6);
   font-family: ui-monospace, 'SF Mono', monospace;
+  -webkit-text-stroke: 0;
+  text-shadow: 0 0 2px rgba(0,0,0,0.6);
 }
-#pill.light .meta { color: rgba(0,0,0,0.35); }
+#pill.light .meta { color: rgba(0,0,0,0.5); text-shadow: 0 0 2px rgba(255,255,255,0.6); }
 .meta-sep { margin: 0 2px; }
 </style>
 </head>
