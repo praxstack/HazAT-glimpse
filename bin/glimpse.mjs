@@ -26,6 +26,8 @@ for (let i = 0; i < args.length; i++) {
   else if (arg === '--y' && args[i + 1]) { flags.y = parseInt(args[++i]); }
   else if (arg === '--cursor-offset-x' && args[i + 1]) { flags.cursorOffset = { ...flags.cursorOffset, x: parseInt(args[++i]) }; }
   else if (arg === '--cursor-offset-y' && args[i + 1]) { flags.cursorOffset = { ...flags.cursorOffset, y: parseInt(args[++i]) }; }
+  else if (arg === '--cursor-anchor' && args[i + 1]) { flags.cursorAnchor = args[++i]; }
+  else if (arg === '--follow-mode' && args[i + 1]) { flags.followMode = args[++i]; }
   else if (!arg.startsWith('-')) { positional.push(arg); }
   else { console.error(`Unknown flag: ${arg}`); process.exit(1); }
 }
@@ -48,6 +50,8 @@ Options:
   --transparent        Transparent background
   --click-through      Mouse passes through
   --follow-cursor      Window follows cursor
+  --follow-mode <mode> Follow mode: snap (default) or spring
+  --cursor-anchor <pos>  Snap point: top-left, top-right, right, bottom-right, bottom-left, left
   --cursor-offset-x <n>  Cursor X offset (default: 20)
   --cursor-offset-y <n>  Cursor Y offset (default: -20)
   --auto-close         Close after first window.glimpse.send()

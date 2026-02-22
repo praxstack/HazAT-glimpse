@@ -62,6 +62,8 @@ win.close();                         // close window
   transparent: true,      // transparent window background
   clickThrough: true,     // mouse passes through window
   followCursor: true,     // window follows mouse cursor
+  followMode: 'spring',  // 'snap' (instant, default) or 'spring' (elastic)
+  cursorAnchor: 'top-right', // snap point: top-left, top-right, right, bottom-right, bottom-left, left
   cursorOffset: {x, y},   // offset from cursor (default: 20, -20)
   autoClose: true,        // close after first message
   x, y,                   // exact screen position

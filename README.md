@@ -96,8 +96,9 @@ The window tracks the cursor in real-time across all screens. `followCursor` imp
 You can also toggle tracking dynamically after the window is open:
 
 ```js
-win.followCursor(false); // stop tracking
-win.followCursor(true);  // resume tracking
+win.followCursor(false);                // stop tracking
+win.followCursor(true);                 // resume tracking (snap mode)
+win.followCursor(true, undefined, 'spring'); // resume with spring physics
 ```
 
 ### Cursor Anchor Snap Points
@@ -158,6 +159,7 @@ const win = open('<html>...</html>', {
 | `transparent` | boolean | `false` | Transparent window background |
 | `clickThrough` | boolean | `false` | Window ignores all mouse events |
 | `followCursor` | boolean | `false` | Track cursor position in real-time |
+| `followMode` | string | `"snap"` | Follow animation mode: `snap` (instant) or `spring` (iOS-style elastic with overshoot) |
 | `cursorAnchor` | string | `null` | Snap point around cursor: `top-left`, `top-right`, `right`, `bottom-right`, `bottom-left`, `left`. Positions window with a safe zone gap; overrides raw offset positioning. |
 | `cursorOffset` | `{ x?, y? }` | `{ x: 20, y: -20 }` | Pixel offset from cursor (or fine-tuning on top of `cursorAnchor`) |
 | `autoClose` | boolean | `false` | Close the window automatically after the first `message` event |
@@ -220,11 +222,12 @@ win.send(`document.getElementById('status').textContent = 'Done'`);
 win.setHTML('<html><body><h1>Step 2</h1></body></html>');
 ```
 
-**`win.followCursor(enabled, anchor?)`** — Start or stop cursor tracking at runtime. Optional `anchor` sets the snap point (`top-left`, `top-right`, `right`, `bottom-right`, `bottom-left`, `left`).
+**`win.followCursor(enabled, anchor?, mode?)`** — Start or stop cursor tracking at runtime. Optional `anchor` sets the snap point (`top-left`, `top-right`, `right`, `bottom-right`, `bottom-left`, `left`). Optional `mode` sets the animation: `snap` (instant) or `spring` (elastic).
 ```js
-win.followCursor(true);              // attach to cursor (uses offset)
-win.followCursor(true, 'top-right'); // attach at top-right snap point
-win.followCursor(false);             // detach
+win.followCursor(true);                        // attach to cursor (uses offset)
+win.followCursor(true, 'top-right');           // attach at top-right snap point
+win.followCursor(true, 'top-right', 'spring'); // spring physics follow
+win.followCursor(false);                       // detach
 ```
 
 **`win.info`** — Getter for the last-known system info (screen, appearance, cursor). Available after `ready`.
@@ -281,10 +284,11 @@ Glimpse uses a newline-delimited JSON (JSON Lines) protocol. Each line is a comp
 {"type":"eval","js":"document.title = 'Updated'"}
 ```
 
-**Follow Cursor** — Toggle cursor tracking at runtime. Optional `anchor` sets the snap point.
+**Follow Cursor** — Toggle cursor tracking at runtime. Optional `anchor` sets the snap point. Optional `mode` sets animation: `snap` or `spring`.
 ```json
 {"type":"follow-cursor","enabled":true}
 {"type":"follow-cursor","enabled":true,"anchor":"top-right"}
+{"type":"follow-cursor","enabled":true,"anchor":"top-right","mode":"spring"}
 {"type":"follow-cursor","enabled":false}
 ```
 
@@ -353,6 +357,7 @@ Available flags:
 | `--transparent` | off | Transparent window background |
 | `--click-through` | off | Window ignores all mouse events |
 | `--follow-cursor` | off | Track cursor position in real-time |
+| `--follow-mode <mode>` | `snap` | Follow animation: `snap` (instant) or `spring` (elastic with overshoot) |
 | `--cursor-anchor <position>` | — | Snap point around cursor: `top-left`, `top-right`, `right`, `bottom-right`, `bottom-left`, `left` |
 | `--cursor-offset-x N` | `20` | Horizontal offset from cursor (or fine-tuning on top of `--cursor-anchor`) |
 | `--cursor-offset-y N` | `-20` | Vertical offset from cursor (or fine-tuning on top of `--cursor-anchor`) |

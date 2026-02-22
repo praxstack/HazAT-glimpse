@@ -20,7 +20,7 @@ Node → Swift (stdin):   {"type":"html","html":"<base64>"}
                         {"type":"eval","js":"..."}
                         {"type":"file","path":"/tmp/page.html"}
                         {"type":"get-info"}
-                        {"type":"follow-cursor","enabled":true}
+                        {"type":"follow-cursor","enabled":true,"mode":"spring"}
                         {"type":"close"}
 
 Swift → Node (stdout):  {"type":"ready","screen":{...},"appearance":{...},"cursor":{...},"screens":[...]}
