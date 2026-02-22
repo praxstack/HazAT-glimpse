@@ -101,11 +101,6 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_start", async (_event, ctx) => {
     await enable(ctx);
-    // Brief intro: show green dot + project name, then fade
-    send("starting");
-    setTimeout(() => {
-      if (lastStatus === "starting") sendRemove();
-    }, 2000);
   });
 
   // ── /companion command ────────────────────────────────────────────────────
@@ -136,7 +131,7 @@ export default function (pi: ExtensionAPI) {
     send("done");
     setTimeout(() => {
       if (lastStatus === "done") sendRemove();
-    }, 5000);
+    }, 3000);
   });
 
   pi.on("message_update", async (_event, _ctx) => {

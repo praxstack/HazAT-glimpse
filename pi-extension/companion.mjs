@@ -166,13 +166,16 @@ function render() {
 // ── state ─────────────────────────────────────────────────────────────────────
 
 const agents = new Map(); // id → { project, status, detail }
+const sockets = new Set(); // active client connections
 let win = null;
+let winReady = false;
+let pendingUpdates = []; // buffered calls until window is ready
 let idleTimer = null;
 
 function resetIdleTimer() {
   if (idleTimer) clearTimeout(idleTimer);
   idleTimer = setTimeout(() => {
-    if (agents.size === 0) {
+    if (agents.size === 0 && sockets.size === 0) {
       cleanup();
       process.exit(0);
     }
@@ -186,11 +189,15 @@ function pushUpdate(id, data) {
   const label = STATUS_LABEL[data.status] ?? '';
   const detail = truncate(data.detail ?? '', 30);
   const project = esc(data.project ?? 'pi');
-  win.send(`update(${JSON.stringify(id)},${JSON.stringify(color)},${JSON.stringify(project)},${JSON.stringify(label)},${JSON.stringify(detail)})`);
+  const js = `update(${JSON.stringify(id)},${JSON.stringify(color)},${JSON.stringify(project)},${JSON.stringify(label)},${JSON.stringify(detail)})`;
+  if (winReady) win.send(js);
+  else pendingUpdates.push(js);
 }
 
 function pushRemove(id) {
-  win.send(`remove(${JSON.stringify(id)})`);
+  const js = `remove(${JSON.stringify(id)})`;
+  if (winReady) win.send(js);
+  else pendingUpdates.push(js);
 }
 
 // ── socket server ─────────────────────────────────────────────────────────────
@@ -199,6 +206,7 @@ function pushRemove(id) {
 try { unlinkSync(SOCK); } catch {}
 
 const server = createServer(socket => {
+  sockets.add(socket);
   const rl = createInterface({ input: socket, crlfDelay: Infinity });
   let clientId = null;
 
@@ -222,11 +230,12 @@ const server = createServer(socket => {
   });
 
   socket.on('close', () => {
+    sockets.delete(socket);
     if (clientId) {
       agents.delete(clientId);
       pushRemove(clientId);
-      resetIdleTimer();
     }
+    resetIdleTimer();
   });
 
   socket.on('error', () => {});
@@ -252,6 +261,9 @@ win = open(buildHTML(), {
 win.on('ready', info => {
   const dark = info?.appearance?.darkMode ?? true;
   if (!dark) win.send('setLight(true)');
+  winReady = true;
+  for (const js of pendingUpdates) win.send(js);
+  pendingUpdates = [];
   resetIdleTimer();
 });
 
