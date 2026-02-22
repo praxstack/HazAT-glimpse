@@ -65,20 +65,26 @@ body {
 
 #pill {
   display: inline-block;
-  min-width: 190px;
-  max-width: 270px;
+  max-width: 300px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 10px;
-  border: 0.5px solid rgba(255, 255, 255, 0.08);
-  padding: 4px 0;
+  padding: 2px 0;
+  text-shadow:
+    -1px -1px 0 rgba(0,0,0,1),
+     1px -1px 0 rgba(0,0,0,1),
+    -1px  1px 0 rgba(0,0,0,1),
+     1px  1px 0 rgba(0,0,0,1),
+     0    0  6px rgba(0,0,0,0.9),
+     0    0 12px rgba(0,0,0,0.5);
 }
 
 #pill.light {
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(0, 0, 0, 0.09);
+  text-shadow:
+    -1px -1px 0 rgba(255,255,255,1),
+     1px -1px 0 rgba(255,255,255,1),
+    -1px  1px 0 rgba(255,255,255,1),
+     1px  1px 0 rgba(255,255,255,1),
+     0    0  6px rgba(255,255,255,0.9),
+     0    0 12px rgba(255,255,255,0.5);
 }
 
 .row {
@@ -97,26 +103,26 @@ body {
 }
 
 .project {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.95);
   font-weight: 500;
   flex-shrink: 0;
 }
-#pill.light .project { color: rgba(0, 0, 0, 0.85); }
+#pill.light .project { color: rgba(0, 0, 0, 0.9); }
 
 .sep {
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.4);
   flex-shrink: 0;
 }
-#pill.light .sep { color: rgba(0, 0, 0, 0.25); }
+#pill.light .sep { color: rgba(0, 0, 0, 0.3); }
 
 .status {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.9);
   flex-shrink: 0;
 }
-#pill.light .status { color: rgba(0, 0, 0, 0.45); }
+#pill.light .status { color: rgba(0, 0, 0, 0.8); }
 
 .detail {
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(255, 255, 255, 0.7);
   font-family: ui-monospace, 'SF Mono', monospace;
   font-size: 10px;
   overflow: hidden;
@@ -125,13 +131,22 @@ body {
   flex: 1;
   min-width: 0;
 }
-#pill.light .detail { color: rgba(0, 0, 0, 0.35); }
+#pill.light .detail { color: rgba(0, 0, 0, 0.6); }
+
+.cursor-blink {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 300;
+  animation: blink 0.8s step-end infinite;
+}
+#pill.light .cursor-blink { color: rgba(0, 0, 0, 0.5); }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 </style>
 </head>
 <body>
 <div id="pill"></div>
 <script>
   var _light = false;
+  var _introPlaying = false;
 
   function setLight(on) {
     _light = on;
@@ -139,9 +154,49 @@ body {
   }
 
   function updateRows(html) {
+    if (_introPlaying) return; // don't clobber the intro animation
     var pill = document.getElementById('pill');
     pill.innerHTML = html;
     if (_light) pill.classList.add('light');
+  }
+
+  function playIntro(project) {
+    if (_introPlaying) return;
+    _introPlaying = true;
+    var pill = document.getElementById('pill');
+    var text = project || 'glimpse';
+    var i = 0;
+
+    pill.style.opacity = '1';
+    pill.style.transition = 'none';
+
+    function type() {
+      i++;
+      var partial = text.slice(0, i);
+      pill.innerHTML =
+        '<div class="row intro-row">' +
+        '  <span class="project">' + partial + '</span>' +
+        '  <span class="cursor-blink">|</span>' +
+        '</div>';
+      if (_light) pill.classList.add('light');
+      if (i < text.length) {
+        setTimeout(type, 60 + Math.random() * 40);
+      } else {
+        // Hold for a moment, then fade out
+        setTimeout(function() {
+          pill.style.transition = 'opacity 0.6s ease-out';
+          pill.style.opacity = '0';
+          setTimeout(function() {
+            pill.innerHTML = '';
+            pill.style.transition = 'none';
+            pill.style.opacity = '1';
+            _introPlaying = false;
+          }, 650);
+        }, 800);
+      }
+    }
+
+    type();
   }
 </script>
 </body>
@@ -231,16 +286,34 @@ process.on('exit', cleanup);
 
 // ── poll loop ─────────────────────────────────────────────────────────────────
 
+// Track which session IDs have already played their intro
+const introPlayed = new Set();
+
 function poll() {
   const agents = readAgents();
 
-  if (agents.length === 0) {
+  // Check for intro agents — trigger animation, then filter them out
+  for (const a of agents) {
+    if (a.status === 'intro' && !introPlayed.has(a.id)) {
+      introPlayed.add(a.id);
+      win.send(`playIntro(${JSON.stringify(a.project ?? 'glimpse')})`);
+    }
+  }
+
+  // Filter out intro agents from normal rendering
+  const visible = agents.filter(a => a.status !== 'intro');
+
+  if (visible.length === 0) {
+    // Still count intro-only agents as alive (don't auto-exit during intro)
+    if (agents.length > 0) {
+      emptyPolls = 0;
+      return;
+    }
     emptyPolls++;
     if (emptyPolls >= IDLE_EXIT_POLLS) {
       cleanup();
       process.exit(0);
     }
-    // Keep the pill hidden when empty (update to empty string if needed)
     if (lastHTML !== '') {
       lastHTML = '';
       win.send(`updateRows('')`);
@@ -250,7 +323,7 @@ function poll() {
 
   emptyPolls = 0;
 
-  const html = buildRowsHTML(agents);
+  const html = buildRowsHTML(visible);
   if (html === lastHTML) return; // nothing changed — skip the eval round-trip
   lastHTML = html;
 
@@ -261,14 +334,14 @@ function poll() {
 // ── open window ───────────────────────────────────────────────────────────────
 
 win = open(buildInitialHTML(), {
-  width:       260,
-  height:      130,
+  width:       280,
+  height:      30,
   frameless:   true,
   floating:    true,
   transparent: true,
   clickThrough: true,
   followCursor: true,
-  cursorOffset: { x: 20, y: -20 },
+  cursorOffset: { x: 18, y: -24 },
 });
 
 win.on('ready', (info) => {

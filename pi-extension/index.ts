@@ -36,6 +36,7 @@ export default function (pi: ExtensionAPI) {
   // ── helpers ──────────────────────────────────────────────────────────────────
 
   function writeState(status: string, detail?: string) {
+    mkdirSync(STATE_DIR, { recursive: true });
     const state: Record<string, unknown> = {
       id: SESSION_ID,
       project: basename(process.cwd()),
@@ -86,10 +87,14 @@ export default function (pi: ExtensionAPI) {
 
       if (enabled) {
         mkdirSync(STATE_DIR, { recursive: true });
+        // Write intro state so companion plays the typing animation
+        writeState("intro");
         ensureCompanion();
+        // Clean up intro state after animation completes (~2s)
+        setTimeout(() => deleteState(), 2500);
 
-        const styledG = ctx.ui.theme.fg("accent", "G");
-        ctx.ui.setStatus("companion", styledG);
+        const theme = ctx.ui.theme;
+        ctx.ui.setStatus("companion", theme.fg("accent", "G") + theme.fg("dim", " ·"));
         ctx.ui.notify("Companion enabled", "info");
       } else {
         deleteState();
@@ -146,10 +151,9 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  pi.on("tool_execution_end", async (_event, _ctx) => {
-    if (!enabled) return;
-    writeState("thinking");
-  });
+  // No tool_execution_end handler — let the tool status persist until
+  // message_update (thinking) or the next tool_execution_start fires.
+  // This gives the 200ms poll time to actually see tool states.
 
   pi.on("session_shutdown", async (_event, _ctx) => {
     deleteState();
