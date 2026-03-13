@@ -1,11 +1,15 @@
 # Changelog
 
-## 0.3.6
+## 0.3.7
 
 Companion remembers your preference — disable it once and it stays off across sessions.
 
-- **Feature**: Persist companion enabled/disabled state to `~/.config/glimpse/settings.json`
+- **Feature**: Persist companion enabled/disabled state to `~/.pi/companion.json`
 - **Improvement**: `/companion` toggle now saves immediately; new sessions respect the saved preference
+
+## 0.3.6
+
+Broken release — settings path used `~/.config/glimpse/` which doesn't exist when installed from git.
 
 ## 0.3.5
 
