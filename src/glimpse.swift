@@ -622,16 +622,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScri
                     log("Skipping invalid JSON: \(trimmed)")
                     continue
                 }
+                let handler = self
                 DispatchQueue.main.async {
                     MainActor.assumeIsolated {
-                        self?.handleCommand(type: type, json: json)
+                        handler?.handleCommand(type: type, json: json)
                     }
                 }
             }
             // stdin EOF — close window
+            let closer = self
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
-                    self?.closeAndExit()
+                    closer?.closeAndExit()
                 }
             }
         }
